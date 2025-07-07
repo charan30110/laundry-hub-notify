@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,6 +6,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "@/hooks/use-toast";
 import { Timer, Droplets, CheckCircle, Clock } from "lucide-react";
+import AuthForm from "@/components/auth/AuthForm";
+import UserProfile from "@/components/UserProfile";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Machine {
   id: number;
@@ -17,6 +19,7 @@ interface Machine {
 }
 
 const Index = () => {
+  const { user, isLoading, login, logout, isAuthenticated } = useAuth();
   const [machines, setMachines] = useState<Machine[]>([
     { id: 1, status: 'available', timeRemaining: 0, totalTime: 0 },
     { id: 2, status: 'available', timeRemaining: 0, totalTime: 0 },
@@ -25,7 +28,6 @@ const Index = () => {
   ]);
 
   const [selectedDuration, setSelectedDuration] = useState<string>('');
-  const [userName, setUserName] = useState<string>('User');
   const [dialogOpen, setDialogOpen] = useState<number | null>(null);
 
   // Duration options in minutes
@@ -35,6 +37,23 @@ const Index = () => {
     { label: '60 minutes', value: 60 },
     { label: '90 minutes', value: 90 },
   ];
+
+  // Show loading screen while checking authentication
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show auth form if not authenticated
+  if (!isAuthenticated) {
+    return <AuthForm onLogin={login} />;
+  }
 
   // Timer effect
   useEffect(() => {
@@ -88,7 +107,7 @@ const Index = () => {
               status: 'in-use' as const,
               timeRemaining: duration * 60, // Convert minutes to seconds
               totalTime: duration * 60,
-              userBooked: userName,
+              userBooked: user?.name || 'Unknown User',
             }
           : machine
       )
@@ -155,6 +174,9 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 p-4">
       <div className="max-w-6xl mx-auto">
+        {/* User Profile */}
+        <UserProfile user={user!} onLogout={logout} />
+
         {/* Header */}
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-3 mb-4">
@@ -254,6 +276,9 @@ const Index = () => {
                     {machine.status.charAt(0).toUpperCase() + machine.status.slice(1).replace('-', ' ')}
                   </Badge>
                 </div>
+                {machine.userBooked && machine.status === 'in-use' && (
+                  <p className="text-sm text-gray-600">Booked by: {machine.userBooked}</p>
+                )}
               </CardHeader>
               
               <CardContent className="space-y-4">
